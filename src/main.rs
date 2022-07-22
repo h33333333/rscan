@@ -25,6 +25,7 @@ struct Parser {
     source_ip: Option<Ipv4Addr>,
     verbose: Option<bool>,
     force_scan: Option<bool>,
+    delay_in_nanos: Option<u64>,
 }
 
 impl Parser {
@@ -37,6 +38,7 @@ impl Parser {
             source_ip: None,
             verbose: Some(false),
             force_scan: Some(false),
+            delay_in_nanos: Some(110000),
         };
         args.next();
         loop {
@@ -96,6 +98,16 @@ impl Parser {
                 stored_args.verbose = Some(true);
             } else if parameter.contains("--force-scan") {
                 stored_args.force_scan = Some(true);
+            } else if parameter.contains("--delay") {
+                let delay_in_nanos = match args.next() {
+                    Some(delay) => delay,
+                    None => return Err("Please specify a delay between each packet")
+                };
+                let delay_in_nanos: u64 = match delay_in_nanos.parse() {
+                    Ok(value) => value,
+                    Err(_) => return Err("Unable to parse delay. Are you sure that you provided a valid non-negative number?")
+                };
+                stored_args.delay_in_nanos = Some(delay_in_nanos);
             } else if let Ok(addr) = (&parameter).parse::<Ipv4Addr>() {
                 stored_args.target_ip = Some(addr);
             } else {
@@ -134,6 +146,7 @@ impl Parser {
                 source_port,
                 verbose: stored_args.verbose.unwrap(),
                 force_scan: stored_args.force_scan.unwrap(),
+                delay_in_nanos: stored_args.delay_in_nanos.unwrap(),
             })
         }
     }
@@ -148,6 +161,7 @@ struct Config {
     source_port: u16,
     verbose: bool,
     force_scan: bool,
+    delay_in_nanos: u64,
 }
 
 /// Creates tcp packet with the SYN flag and given options
@@ -188,6 +202,7 @@ fn send_syn_packets(config: Arc<Config>, start_port: u16) -> Result<(), std::io:
     let source_ip = config.source_ip;
     let target_ip = config.target_ip;
     let thread_count = config.thread_count;
+    let delay = config.delay_in_nanos;
     loop {
         let mut buff: [u8; 24] = [0; 24];
         let packet = create_tcp_packet(
@@ -205,7 +220,7 @@ fn send_syn_packets(config: Arc<Config>, start_port: u16) -> Result<(), std::io:
             break;
         };
         destination_port += thread_count as u16;
-        thread::sleep(Duration::from_nanos(110000 * thread_count as u64));
+        thread::sleep(Duration::from_nanos(delay * thread_count as u64));
     }
     Ok(())
 }
@@ -344,7 +359,8 @@ optional arguments
 \t-h,--help\t\t\tShow this message and exit
 \t-t,--thread-count <amount>\tAmount of threads (from 1 to 20). Default is 4
 \t-v,--verbose\t\t\tVerbose mode
-\t--force-scan\t\t\tDo not ping the host before scan"
+\t--force-scan\t\t\tDo not ping the host before scan
+\t--delay <delay>\t\t\tDelay in nanoseconds between sending packets in each thread. Default is 110000 nanoseconds"
     );
 }
 
@@ -411,6 +427,9 @@ fn main() {
                 Ok(_) => (),
                 Err(e) => {
                     println!("Error in thread:\t{}: {}", e.kind(), e.to_string());
+                    if e.to_string().contains("No buffer space") {
+                        println!("Please, check the --help page and try setting a higher delay between packets")
+                    };
                     std::process::exit(1);
                 }
             },

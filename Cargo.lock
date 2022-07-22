@@ -151,16 +151,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "port-scanner"
-version = "0.1.0"
-dependencies = [
- "pnet",
- "pnet_datalink",
- "pnet_transport",
- "rand",
-]
-
-[[package]]
 name = "ppv-lite86"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -230,6 +220,16 @@ name = "regex-syntax"
 version = "0.6.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3f87b73ce11b1619a3c6332f45341e0047173771e8b8b73f87bfeefb7b56244"
+
+[[package]]
+name = "rscan"
+version = "0.1.0"
+dependencies = [
+ "pnet",
+ "pnet_datalink",
+ "pnet_transport",
+ "rand",
+]
 
 [[package]]
 name = "serde"

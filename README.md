@@ -8,6 +8,7 @@ For now, `rscan` can only do the SYN scan (or Half-open scan). It is often calle
 Currently, the only way to install `rscan` is through cargo:
 ```sh
 $ cargo install rscan
+$ sudo setcap cap_net_raw+ep ~/.cargo/bin/rscan
 ```
 ## Usage
 Scanning the `google.com` using the `en0` interface:
@@ -30,6 +31,5 @@ Scan was completed in 10 seconds (it is worth noticing that this strongly depend
 - `rscan` should always be run using the `sudo`. This happens because `rscan` is using the raw sockets behind the scenes.
 - You should always explicitly specify the network interface
 - No IPv6 support
-- No way to change the delay between each TCP packet
 - Only one scan type is present currently
 - As this project heavily depends on the [libpnet](https://github.com/libpnet/libpnet) package, building `rscan` on Windows is not as trivial as it is on the Unix based systems. For more inforamtion please refer to the [libpnet's usage section](https://github.com/libpnet/libpnet#usage)
