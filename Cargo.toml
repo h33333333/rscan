@@ -1,0 +1,19 @@
+[package]
+name = "rscan"
+version = "0.1.0"
+edition = "2021"
+description = "Simple tool for a quick and reliable port scanning"
+authors = ["h33333333"]
+license = "MIT"
+keywords = ["networking", "port", "scanning"]
+readme = "README.md"
+categories = ["command-line-utilities"]
+repository = "https://github.com/h33333333/rscan"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand = "0.8.3"
+pnet = "0.31.0"
+pnet_datalink = "0.31.0"
+pnet_transport = "0.31.0"
