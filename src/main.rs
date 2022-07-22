@@ -101,7 +101,7 @@ impl Parser {
             } else if parameter.contains("--delay") {
                 let delay_in_nanos = match args.next() {
                     Some(delay) => delay,
-                    None => return Err("Please specify a delay between each packet")
+                    None => return Err("Please specify a delay between each packet"),
                 };
                 let delay_in_nanos: u64 = match delay_in_nanos.parse() {
                     Ok(value) => value,
@@ -305,11 +305,13 @@ fn ping_target(target_ip: Ipv4Addr) -> Result<bool, std::io::Error> {
         Ok(_) => (),
         Err(e) => return Err(e),
     };
-    let mut packet_iter = icmp_packet_iter(&mut rx);
-    loop {
-        match packet_iter.next_with_timeout(Duration::from_secs(1)) {
-            Ok(possible_response) => match possible_response {
-                Some(packet_addr_pair) => {
+    let (sender, receiver) = mpsc::channel();
+    let thread_sender = sender.clone();
+    let _ = thread::spawn(move || {
+        let mut packet_iter = icmp_packet_iter(&mut rx);
+        loop {
+            match packet_iter.next() {
+                Ok(packet_addr_pair) => {
                     if packet_addr_pair.0.get_icmp_type()
                         == pnet::packet::icmp::IcmpTypes::EchoReply
                         && packet_addr_pair.1 == IpAddr::V4(target_ip)
@@ -322,15 +324,35 @@ fn ping_target(target_ip: Ipv4Addr) -> Result<bool, std::io::Error> {
                         if echo_reply_packet.get_identifier() == identifier
                             && echo_reply_packet.get_sequence_number() == sequence_number
                         {
-                            return Ok(true);
+                            match thread_sender.send(Ok(true)) {
+                                Ok(_) => (),
+                                Err(e) => println!(
+                                    "Error while sending results of the scan from thread: {}",
+                                    e
+                                ),
+                            };
+                            return;
                         }
                     }
                 }
-                None => return Ok(false),
-            },
-            Err(_) => (),
+                Err(e) => {
+                    match thread_sender.send(Err(e)) {
+                        Ok(_) => (),
+                        Err(send_error) => println!("Error sending back other error which happened during waiting for ICMP response: {}", send_error),
+                    };
+                    return;
+                }
+            }
         }
-    }
+    });
+    let result = match receiver.recv_timeout(Duration::from_secs(3)) {
+        Ok(result) => match result {
+            Ok(value) => value,
+            Err(e) => return Err(e),
+        },
+        Err(_) => false,
+    };
+    Ok(result)
 }
 
 /// Displays scan results

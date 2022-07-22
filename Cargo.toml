@@ -1,6 +1,6 @@
 [package]
 name = "rscan"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "Simple tool for a quick and reliable port scanning"
 authors = ["h33333333"]
